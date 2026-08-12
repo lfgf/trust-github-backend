@@ -54,3 +54,5 @@ While this library is primarily extracted for auditing purposes, we welcome issu
 ## 📄 License
 
 This project is licensed under the MIT License.
+
+<!-- trigger 4 -->
