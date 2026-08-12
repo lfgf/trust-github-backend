@@ -1,0 +1,80 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '.github/**'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Bump Version
+        id: bump
+        run: |
+          python3 -c "
+          import re
+          with open('Kojinx.Trust.GitHub/Kojinx.Trust.GitHub.csproj', 'r') as f:
+              content = f.read()
+          
+          def bump_match(match):
+              version = match.group(1)
+              parts = version.split('.')
+              if '-' in parts[-1]:
+                  # Convert 1.0.0-beta.1 -> 1.0.0
+                  new_version = version.split('-')[0]
+                  print(f'NEW_VERSION={new_version}')
+                  return f'<Version>{new_version}</Version>'
+              else:
+                  parts[-1] = str(int(parts[-1]) + 1)
+                  new_version = '.'.join(parts)
+                  print(f'NEW_VERSION={new_version}')
+                  return f'<Version>{new_version}</Version>'
+                  
+          new_content = re.sub(r'<Version>(.*?)</Version>', bump_match, content)
+          
+          with open('Kojinx.Trust.GitHub/Kojinx.Trust.GitHub.csproj', 'w') as f:
+              f.write(new_content)
+          " >> $GITHUB_ENV
+
+      - name: Commit bumped version
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add Kojinx.Trust.GitHub/Kojinx.Trust.GitHub.csproj
+          # Only commit if there are changes
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: bump version [skip ci]"
+          git push
+
+      - name: Build and Pack
+        run: dotnet pack Kojinx.Trust.GitHub/Kojinx.Trust.GitHub.csproj -c Release
+
+      - name: Publish to NuGet
+        run: dotnet nuget push Kojinx.Trust.GitHub/bin/Release/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Update Monolith
+        run: |
+          cd ..
+          git clone https://${{ secrets.PAT_TOKEN }}@github.com/lfgf/kojinx-backend.git kojinx-backend
+          cd kojinx-backend
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          cd Kojinx.Api
+          dotnet add package Kojinx.Trust.GitHub
+          
+          cd ..
+          git add Kojinx.Api/Kojinx.Api.csproj
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: bump Kojinx.Trust.GitHub to latest"
+          git push origin main
