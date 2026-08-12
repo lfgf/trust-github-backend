@@ -72,7 +72,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
           cd Kojinx.Api
-          dotnet add package Kojinx.Trust.GitHub
+          sed -i 's/<PackageReference Include="Kojinx.Trust.GitHub" Version=".*" \/>/<PackageReference Include="Kojinx.Trust.GitHub" Version="${{ env.NEW_VERSION }}" \/>/' Kojinx.Api.csproj
           
           cd ..
           git add Kojinx.Api/Kojinx.Api.csproj
