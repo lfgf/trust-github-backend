@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>Kojinx.Trust.GitHub</PackageId>
-    <Version>1.0.0-beta.5</Version>
+    <Version>1.0.0-beta.6</Version>
     <Authors>Kojinx</Authors>
     <Company>Kojinx</Company>
     <Description>GitHub Trust Module for Kojinx Open-Source extraction.</Description>
